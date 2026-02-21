@@ -1,0 +1,54 @@
+<Window
+    x:Class="AppNotify.Views.LoginWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="App Notify — Setup">
+
+    <Grid Padding="24" MaxWidth="400" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+            <FontIcon Glyph="&#xE77B;" FontSize="40" Foreground="{ThemeResource AccentFillColorDefaultBrush}"
+                      HorizontalAlignment="Center" />
+
+            <TextBlock Text="App Store Notify" Style="{StaticResource TitleTextBlockStyle}"
+                       HorizontalAlignment="Center" />
+
+            <TextBlock Text="Connect to App Store Connect" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       HorizontalAlignment="Center" />
+
+            <StackPanel Spacing="12">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Issuer ID" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="IssuerIdBox" PlaceholderText="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Key ID" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBox x:Name="KeyIdBox" PlaceholderText="XXXXXXXXXX" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Private Key (.p8)" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Grid>
+                        <Button x:Name="ChooseFileBtn" Content="Choose .p8 File..." Click="ChooseFileClick"
+                                HorizontalAlignment="Stretch" />
+                        <StackPanel x:Name="KeyLoadedPanel" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+                            <FontIcon Glyph="&#xE73E;" Foreground="Green" FontSize="14" />
+                            <TextBlock Text="Key loaded" FontSize="12" VerticalAlignment="Center" />
+                            <Button Content="Clear" Click="ClearKeyClick" Style="{StaticResource SubtleButtonStyle}" FontSize="12" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+
+            <InfoBar x:Name="ErrorBar" IsOpen="False" Severity="Error" IsClosable="True" />
+
+            <Button x:Name="ConnectBtn" Content="Connect" Click="ConnectClick"
+                    Style="{StaticResource AccentButtonStyle}"
+                    HorizontalAlignment="Stretch" IsEnabled="False" />
+
+            <HyperlinkButton Content="How to create an API key"
+                             NavigateUri="https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api"
+                             HorizontalAlignment="Center" FontSize="12" />
+        </StackPanel>
+    </Grid>
+</Window>
