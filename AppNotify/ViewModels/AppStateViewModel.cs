@@ -22,8 +22,11 @@ public partial class AppStateViewModel : ObservableObject
 
     private readonly ObservableCollection<AppInfo> _apps = [];
     private readonly HashSet<string> _hiddenAppIds = [];
+    private readonly HashSet<AppStatus> _collapsedStatuses = [];
     private static readonly string HiddenAppsFilePath =
         Path.Combine(AppContext.BaseDirectory, "hidden-apps.json");
+    private static readonly string CollapsedGroupsFilePath =
+        Path.Combine(AppContext.BaseDirectory, "collapsed-groups.json");
     private AppStoreConnectApi? _apiService;
     private PollingService? _pollingService;
     private readonly NotificationService _notificationService = new();
@@ -36,6 +39,7 @@ public partial class AppStateViewModel : ObservableObject
     {
         Debug.WriteLine("[ViewModel] CheckAuthentication");
         LoadHiddenApps();
+        LoadCollapsedGroups();
         var creds = _credentialService.GetCredentials();
         if (creds is not null)
         {
@@ -203,7 +207,11 @@ public partial class AppStateViewModel : ObservableObject
         var groups = visible
             .GroupBy(a => a.LatestVersion?.Status ?? AppStatus.Unknown)
             .OrderBy(g => g.Key.SortOrder())
-            .Select(g => new StatusGroup(g.Key, g.ToList()))
+            .Select(g => new StatusGroup(
+                g.Key,
+                g.ToList(),
+                !_collapsedStatuses.Contains(g.Key),
+                OnGroupExpandedChanged))
             .ToList();
 
         GroupedApps.Clear();
@@ -211,6 +219,16 @@ public partial class AppStateViewModel : ObservableObject
             GroupedApps.Add(g);
 
         Debug.WriteLine($"[ViewModel] RebuildGroups: {visible.Count} visible apps, {groups.Count} groups");
+    }
+
+    private void OnGroupExpandedChanged(AppStatus status, bool isExpanded)
+    {
+        if (isExpanded)
+            _collapsedStatuses.Remove(status);
+        else
+            _collapsedStatuses.Add(status);
+
+        SaveCollapsedGroups();
     }
 
     private void LoadHiddenApps()
@@ -247,6 +265,46 @@ public partial class AppStateViewModel : ObservableObject
             Debug.WriteLine($"[ViewModel] Failed to save hidden apps: {ex.Message}");
         }
     }
+
+    private void LoadCollapsedGroups()
+    {
+        try
+        {
+            if (!File.Exists(CollapsedGroupsFilePath))
+                return;
+
+            var json = File.ReadAllText(CollapsedGroupsFilePath);
+            var statuses = JsonSerializer.Deserialize<List<string>>(json);
+            if (statuses is null)
+                return;
+
+            foreach (var status in statuses)
+            {
+                if (Enum.TryParse<AppStatus>(status, out var parsed))
+                    _collapsedStatuses.Add(parsed);
+            }
+
+            Debug.WriteLine($"[ViewModel] Loaded {_collapsedStatuses.Count} collapsed groups");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ViewModel] Failed to load collapsed groups: {ex.Message}");
+        }
+    }
+
+    private void SaveCollapsedGroups()
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(_collapsedStatuses.Select(s => s.ToString()).ToList());
+            File.WriteAllText(CollapsedGroupsFilePath, json);
+            Debug.WriteLine($"[ViewModel] Saved {_collapsedStatuses.Count} collapsed groups");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ViewModel] Failed to save collapsed groups: {ex.Message}");
+        }
+    }
 }
 
 public class StatusGroup
@@ -255,10 +313,27 @@ public class StatusGroup
     public string DisplayName => Status.DisplayName();
     public int Count => Apps.Count;
     public List<AppInfo> Apps { get; }
+    private readonly Action<AppStatus, bool>? _onExpandedChanged;
 
-    public StatusGroup(AppStatus status, List<AppInfo> apps)
+    private bool _isExpanded;
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value)
+                return;
+
+            _isExpanded = value;
+            _onExpandedChanged?.Invoke(Status, value);
+        }
+    }
+
+    public StatusGroup(AppStatus status, List<AppInfo> apps, bool isExpanded, Action<AppStatus, bool>? onExpandedChanged = null)
     {
         Status = status;
         Apps = apps;
+        _isExpanded = isExpanded;
+        _onExpandedChanged = onExpandedChanged;
     }
 }
