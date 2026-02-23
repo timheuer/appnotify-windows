@@ -23,6 +23,7 @@ public sealed partial class PopupWindow : Window
             presenter.IsResizable = false;
             presenter.IsMaximizable = false;
             presenter.IsMinimizable = false;
+            presenter.IsAlwaysOnTop = true;
             presenter.SetBorderAndTitleBar(true, false);
         }
 
